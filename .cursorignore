@@ -1,0 +1,40 @@
+# Build and target
+/target/
+Cargo.lock
+Cargo.toml.orig
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+logs/
+tmp/
+temp/
+
+# Virtual environments
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+.env.local
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# AI / Cursor — отключи индексацию ненужных мест
+node_modules/
+out/
+build/
+debug/

@@ -1,0 +1,17 @@
+[package]
+name = "actix-web-auth"
+version = "1.0.0"
+edition = "2021"
+   
+[dependencies]
+log = "0.4.27"
+anyhow = "1.0.86"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.8.3"
+actix-web = { version = "4.4", features = ["macros"] }
+actix-cors = "0.7.1"
+actix-web-auth-macros = { path = "src/macros" }
+reqwest = { version = "0.12.20", features = ["json"] }
+jsonwebtoken = "9.3"
+base64 = "0.22"
