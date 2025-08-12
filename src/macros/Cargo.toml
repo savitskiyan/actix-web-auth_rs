@@ -1,0 +1,15 @@
+[package]
+name = "actix-web-auth-macros"
+version = "1.0.0"
+edition = "2021"
+
+[lib]
+name = "actix_web_auth_macros"
+path = "lib.rs"
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+actix-web = "4.4"

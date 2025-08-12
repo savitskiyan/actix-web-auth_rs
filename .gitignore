@@ -1,0 +1,58 @@
+# Build directories
+/target/
+**/*.rs.bk
+
+# Cargo.lock - раскомментируй, если это библиотека (не бинарный проект)
+# Для бинарных проектов (приложений) Cargo.lock лучше коммитить
+Cargo.lock
+
+# Rust formatter
+.rustfmt.toml
+rustfmt.toml
+
+# IDE
+/.idea/
+/.vscode/
+/.editorconfig
+
+# Editor swap files, backup files, and temp files
+*.swp
+*~
+.swp
+.ds_store
+.DS_Store
+
+# Debug
+/debug/
+/out/
+/build/
+/**/*.o
+/**/*.obj
+
+# macOS
+.DS_Store?
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Python (если используешь скрипты)
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Binary executables (after manual compilation)
+*.exe
+*.dll
+*.so
+*.dylib
