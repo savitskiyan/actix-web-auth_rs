@@ -264,7 +264,7 @@ impl AuthValidator {
         Ok(())
     }
 
-    async fn get_jwk_key_json(&self, key_id: &str) -> anyhow::Result<Value> {
+    async fn get_jwk_key_json_by_kid(&self, key_id: &str) -> anyhow::Result<Value> {
         // загружаем JWKS если нужно
         match self.load_jwks().await {
             Ok(_) => (),
@@ -311,7 +311,52 @@ impl AuthValidator {
         Ok(key_json.clone())
     }
 
+    async fn get_jwk_key_json_by_alg(&self, alg: &str) -> anyhow::Result<Value> {
+        // загружаем JWKS если нужно
+        match self.load_jwks().await {
+            Ok(_) => (),
+            Err(err) => {
+                return Err(anyhow::anyhow!("Failed to load JWKS. {}", err));
+            }
+        }
 
+        // получаем JWKS из кеша
+        let jwks = {
+            let cache = self.cache.read().unwrap();
+            match cache.jwks.as_ref() {
+                Some(jwks) => jwks.clone(),
+                None => {
+                    return Err(anyhow::anyhow!("JWKS not loaded"));
+                }
+            }
+        };
+
+        let keys = match jwks.get("keys") {
+            Some(keys) => keys,
+            None => {
+                return Err(anyhow::anyhow!("Invalid JWKS format: missing 'keys' array."));
+            }
+        };
+        let vec_keys = match keys.as_array() {
+            Some(keys) => keys.to_vec(),
+            None => {
+                return Err(anyhow::anyhow!("Invalid JWKS format: 'keys' is not an array."));
+            }
+        };
+
+        // Ищем ключ по kid или используем первый доступный
+        let key_data = vec_keys.iter().find(|key| {
+            key.get("alg").and_then(|k| k.as_str()) == Some(alg)
+        });
+        
+        let key_json = match key_data {
+            Some(key) => key,
+            None => {
+                return Err(anyhow::anyhow!("No matching key found in JWKS."));
+            }
+        };
+        Ok(key_json.clone())
+    }
 
     /// Проверяет JWT токен из HttpRequest
     pub async fn validate(&self, req: &HttpRequest) -> bool {
@@ -333,19 +378,39 @@ impl AuthValidator {
             }
         };
 
-        if header.kid.is_none() {
-            log::warn!("JWT header has no kid");
-            return false;
-        }
-        
-        // Ищем ключ по kid
-        let key_json = match self.get_jwk_key_json(header.kid.as_ref().unwrap()).await {
-            Ok(key) => key,
-            Err(err) => {
-                log::warn!("Failed to get JWKS key. {}", err);
-                return false;
+        let key_json = match header.kid {
+            Some(kid) => {
+                match self.get_jwk_key_json_by_kid(&kid).await {
+                    Ok(key) => key,
+                    Err(err) => {
+                        log::warn!("Failed to get JWKS key. {}", err);
+                        return false;
+                    }
+                }
+            }
+            None => {
+                match self.get_jwk_key_json_by_alg(format!("{:?}", header.alg).as_str()).await {
+                    Ok(key) => key,
+                    Err(err) => {
+                        log::warn!("Failed to get JWKS key. {}", err);
+                        return false;
+                    }
+                }
             }
         };
+        // if header.kid.is_none() {
+        //     log::warn!("JWT header has no kid");
+        //     return false;
+        // }
+        
+        // Ищем ключ по kid
+        // let key_json = match self.get_jwk_key_json_by_kid(header.kid.as_ref().unwrap()).await {
+        //     Ok(key) => key,
+        //     Err(err) => {
+        //         log::warn!("Failed to get JWKS key. {}", err);
+        //         return false;
+        //     }
+        // };
         
         // Извлекаем публичный ключ
         let decoding_key = match self.extract_decoding_key(&key_json) {
