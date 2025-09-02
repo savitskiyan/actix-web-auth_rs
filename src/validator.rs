@@ -10,7 +10,7 @@ use serde_json::Value;
 use actix_web::{error::Error, web, App, HttpRequest};
 use actix_web::dev::{ServiceFactory, ServiceRequest};
 use jsonwebtoken::{decode, decode_header, Validation};
-use crate::core::request::Request;
+use crate::core::request::AuthToken;
 
 /// Конфигурация политики доступа
 #[derive(Deserialize, Debug, Clone)]
@@ -21,8 +21,7 @@ pub struct Policy {
 
 /// Кэш валидатора авторизации
 #[derive(Debug, Clone)]
-struct AuthValidatorCache
-{
+struct AuthValidatorCache {
     // конфигурация сервера авторизации
     openid_config: Option<Value>,
     // время последней загрузки конфигурации сервера авторизации
