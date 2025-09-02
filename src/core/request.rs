@@ -1,5 +1,6 @@
 use actix_web::HttpRequest;
 use serde_json::Value;
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 
 pub trait AuthToken {
     fn auth_token(&self) -> anyhow::Result<&str>;
@@ -57,20 +58,39 @@ impl AuthIdentity for HttpRequest {
                 return Err(anyhow::anyhow!("Failed to get authorization token. {}", err));
             }
         };
-        // 2. извлекаем JWT часть токена как JSON и преобразуем в массив Claim, которая содержит claims
-        let parts: Vec<&str> = token.rsplitn(2, '.').collect();
-        let message = parts.get(0).ok_or_else(|| anyhow::anyhow!("Invalid JWT format"))?;
-        let message_parts: Vec<&str> = message.rsplitn(2, '.').collect();
-        let payload = message_parts.get(0).ok_or_else(|| anyhow::anyhow!("Invalid JWT format"))?;
         
-        let obj = match serde_json::from_str::<Value>(payload) {
+        // 2. Разбиваем JWT токен на части (header.payload.signature)
+        let parts: Vec<&str> = token.split('.').collect();
+        if parts.len() != 3 {
+            return Err(anyhow::anyhow!("Invalid JWT format: expected 3 parts"));
+        }
+        
+        // 3. Декодируем Base64 payload
+        let payload = parts[1];
+        let decoded_payload = match URL_SAFE_NO_PAD.decode(payload) {
+            Ok(decoded) => decoded,
+            Err(err) => {
+                return Err(anyhow::anyhow!("Failed to decode JWT payload from Base64. {}", err));
+            }
+        };
+        
+        // 4. Парсим декодированный payload как JSON
+        let payload_str = match String::from_utf8(decoded_payload) {
+            Ok(s) => s,
+            Err(err) => {
+                return Err(anyhow::anyhow!("Failed to convert decoded payload to string. {}", err));
+            }
+        };
+        
+        let obj = match serde_json::from_str::<Value>(&payload_str) {
             Ok(obj) => obj,
             Err(err) => {
                 return Err(anyhow::anyhow!("Failed to decode JWT claims. {}", err));
             }
         };
+        
         let mut claims = Vec::<Claim>::new();
-        // 3. преобразуем JSON в массив Claim
+        // 5. Преобразуем JSON в массив Claim
         if let Some(obj_map) = obj.as_object() {
             for (key, value) in obj_map {
                 claims.push(Claim { 
