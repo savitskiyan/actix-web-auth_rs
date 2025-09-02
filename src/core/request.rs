@@ -13,9 +13,14 @@ pub struct Claim {
 
 #[derive(Debug, Clone)]
 pub struct Identity {
-    pub claims: Vec<Claim>,
+    claims: Vec<Claim>,
 }
 
+impl Identity {
+    pub fn claims(&self) -> &Vec<Claim> {
+        &self.claims
+    }
+}
 
 pub trait AuthIdentity {
     fn identity(&self) -> anyhow::Result<Identity>;
