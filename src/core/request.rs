@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use actix_web::HttpRequest;
 use serde_json::Value;
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -20,6 +21,22 @@ pub struct Identity {
 impl Identity {
     pub fn claims(&self) -> &Vec<Claim> {
         &self.claims
+    }
+
+    pub fn get_claim(&self, name: &str) -> Option<&Claim> {
+        self.claims.iter().find(|claim| claim.name == name)
+    }
+
+    pub fn get_claim_value<T: FromStr>(&self, name: &str) -> anyhow::Result<T> {
+        let claim = self.get_claim(name)
+            .ok_or_else(|| anyhow::anyhow!("Claim '{}' not found", name))?;
+
+        if claim.value.is_empty() {
+            return Err(anyhow::anyhow!("Claim '{}' is empty", name));
+        }
+
+        claim.value.parse::<T>()
+            .map_err(|_| anyhow::anyhow!("Claim '{}': is not a type of '{}'. Value: '{}'", name, claim.value, std::any::type_name::<T>()))
     }
 }
 
