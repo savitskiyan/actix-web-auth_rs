@@ -66,19 +66,6 @@ pub fn authorize(args: TokenStream, input: TokenStream) -> TokenStream {
     // Создаем имя для внутренней функции с оригинальной логикой
     let inner_fn_name = syn::Ident::new(&format!("__inner_{}", fn_name), fn_name.span());
     
-    // Извлекаем имена параметров для передачи в оригинальную функцию
-    let param_names: Vec<_> = fn_inputs.iter().filter_map(|input| {
-        if let syn::FnArg::Typed(pat_type) = input {
-            if let syn::Pat::Ident(ident) = &*pat_type.pat {
-                Some(&ident.ident)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }).collect();
-    
     // Проверяем, есть ли уже HttpRequest среди параметров и находим его имя
     let http_request_param = fn_inputs.iter().find_map(|input| {
         if let syn::FnArg::Typed(pat_type) = input {
@@ -95,6 +82,19 @@ pub fn authorize(args: TokenStream, input: TokenStream) -> TokenStream {
         }
         None
     });
+    
+    // Извлекаем имена параметров для передачи в оригинальную функцию
+    let param_names: Vec<_> = fn_inputs.iter().filter_map(|input| {
+        if let syn::FnArg::Typed(pat_type) = input {
+            if let syn::Pat::Ident(ident) = &*pat_type.pat {
+                Some(&ident.ident)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }).collect();
     
     // Генерируем wrapper функцию с проверкой авторизации
     let expanded = if let Some(req_param) = http_request_param {
@@ -123,9 +123,6 @@ pub fn authorize(args: TokenStream, input: TokenStream) -> TokenStream {
             #(#fn_attrs)*
             #fn_vis async fn #fn_name(#fn_inputs) -> actix_web::HttpResponse {
                 use actix_web::web;
-                
-                // Извлекаем HttpRequest из параметров
-                // Это работает потому что actix-web автоматически передает extractors
                 
                 // Получаем валидатор авторизации из app_data  
                 let validator = match #req_param.app_data::<web::Data<AuthValidator>>() {
